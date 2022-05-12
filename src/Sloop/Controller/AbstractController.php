@@ -2,31 +2,24 @@
 
 namespace Sloop\Controller;
 
-
-use Pimple\Container;
-use Slim\Slim;
+use Psr\Container\ContainerInterface;
+use Slim\App;
 
 abstract class AbstractController
 {
 
     /**
-     * @var Container $container
+     * @var ContainerInterface $container
      */
     protected $container;
-    /**
-     * @var null|Slim $app
-     */
-    protected $app;
-
 
     /**
      * AbstractController constructor.
      * @param $c Container
      */
-    public function __construct($c)
+    public function __construct(ContainerInterface $container)
     {
-        $this->container = $c;
-        $this->app = Slim::getInstance();
+        $this->container = $container;
     }
 
     protected abstract function route($args);

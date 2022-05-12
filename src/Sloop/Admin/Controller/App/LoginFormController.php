@@ -6,7 +6,7 @@
 namespace Sloop\Admin\Controller\App;
 
 
-use Pimple\Container;
+use Psr\Container\ContainerInterface;
 use Sloop\User\UserService;
 
 class LoginFormController extends AbstractAppController
@@ -17,10 +17,28 @@ class LoginFormController extends AbstractAppController
      */
     protected $userService;
 
-    public function __construct(Container $c)
+    public function __construct(ContainerInterface $container)
     {
-        parent::__construct($c);
-        $this->userService = $c['UserService'];
+        parent::__construct($container);
+        $this->userService = $container->get('UserService');
+    }
+
+    public function __invoke($request, $response, $args)
+    {
+        $params = (array)$request->getParsedBody();
+        if ($params['token'] !== $_SESSION['token']) {
+            // TODO this doesn't work
+            $response->withRedirect($request->getRootUri());
+        }
+   
+        $msg = $this->userService->processLoginForm($params);
+        if ($msg === false) {
+            $this->container->get('flash')->addMessage('error', 'incorrect username or password');
+        }
+
+        return $response
+            ->withHeader('Location', '/admin')
+            ->withStatus(302);
     }
 
     public function route($args)
@@ -28,10 +46,10 @@ class LoginFormController extends AbstractAppController
         parent::route($args);
         $msg = $this->userService->processLoginForm($this->request->post());
         if ($msg === false) {
-            $this->app->flash('error', 'incorrect username or password');
+            // $this->app->flash('error', 'incorrect username or password');
         }
 
-        $this->app->redirect("/admin");
+        $response->withRedirect("/admin");
 
     }
 }

@@ -3,7 +3,7 @@
 namespace Sloop\Admin\Controller\View;
 
 
-use Pimple\Container;
+use Psr\Container\ContainerInterface;
 use Sloop\Service\ZineService;
 
 class ZineIssueAdminController extends AbstractAdminViewController
@@ -14,25 +14,29 @@ class ZineIssueAdminController extends AbstractAdminViewController
      */
     protected $zineService;
 
-    public function __construct(Container $c)
+    public function __construct(ContainerInterface $container)
     {
-        parent::__construct($c);
-        $this->zineService = $c['ZineService'];
+        parent::__construct($container);
+        $this->zineService = $container->get('ZineService');
     }
 
-    protected function route($args)
+    public function __invoke($request, $response, $args)
     {
         $id = array_shift($args);
         $issueId = array_shift($args);
         $issue = $this->zineService->getZineIssue($id, $issueId);
 
-        $this->app->render('admin/admin-zine-issue.html.twig', array(
+        return $this->container->get('view')->render($response, 'admin/admin-zine-issue.html.twig', array(
             'token' => $_SESSION['token'],
             'stylesheets' => $this->getStyles(),
             'type' => 'zine-issue',
             'zineId' => $id,
             'issue' => $issue
         ));
+    }
+
+    public function route($args) {
+
     }
 
 }

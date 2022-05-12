@@ -22,12 +22,11 @@ class UserService
     public function processLoginForm($postArray)
     {
         if (!isset($postArray['uname']) || !isset($postArray['pword'])) {
-            return "Your username of password is invalid!";
+            return "Your username or password is invalid!";
         }
         $username = htmlentities($postArray['uname'], ENT_QUOTES);
         $password = htmlentities($postArray['pword'], ENT_QUOTES);
-        return $this->loginUser($username,
-            $password);
+        return $this->loginUser($username, $password);
     }
 
     /**
@@ -42,10 +41,14 @@ class UserService
     protected function loginUser($username, $password)
     {
         $userId = $this->getIdByUsername($username);
+        if (!$userId) {
+            return false;
+        }
         $user = $this->getUserFromDb($userId);
         $correctPassword = password_verify($password, $user->password);
 
         if ($correctPassword) {
+            var_dump("foo");
             $_SESSION['user'] = array(
                 'id' => $user->user_id,
                 'name' => $user->username
@@ -58,8 +61,16 @@ class UserService
 
     private function getIdByUsername($username)
     {
-        $userId = User::query()->where('username', $username)->get(['user_id']);
-        return $userId[0]->user_id;
+        
+        $userId = User::query()->where('username', $username);
+        if ($userId->count()) {
+            $user = $userId->first();
+            var_dump($user);
+            return $user->user_id;
+        } else {
+            return null;
+        }
+
     }
 
     private function getUserFromDb($userId)

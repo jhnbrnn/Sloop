@@ -6,7 +6,7 @@
 namespace Sloop\Admin\Controller\App;
 
 
-use Pimple\Container;
+use Psr\Container\ContainerInterface;
 use Sloop\Service\ArticleService;
 
 class ArticleFormController extends AbstractAppController
@@ -17,15 +17,38 @@ class ArticleFormController extends AbstractAppController
      */
     protected $articleService;
 
-    public function __construct(Container $c)
+    public function __construct(ContainerInterface $container)
     {
-        parent::__construct($c);
-        $this->articleService = $c['ArticleService'];
+        parent::__construct($container);
+        $this->articleService = $container->get('ArticleService');
+    }
+
+    public function __invoke($request, $response, $args)
+    {
+        // todo check if user is logged in
+
+        $params = (array)$request->getParsedBody();
+
+        $result = $this->articleService->createArticle($params);
+        if ($result === true) {
+            return $response
+                ->withHeader('Location', '/admin/article')
+                ->withStatus(302);
+            $this->app->redirect("/admin/article");
+        } else {
+            $this->container->get('flash')->addMessage('error', 'Cannot create article');
+            $this->container->get('flash')->addMessage('article', $result);
+            return $response
+                ->withHeader('Location', '/admin/article')
+                ->withStatus(302);
+        }
     }
 
     public function route($args)
     {
+        // figure out what's going on here.
         parent::route($args);
+
         $result = $this->articleService->createArticle($this->request->post());
         if ($result === true) {
             $this->app->redirect("/admin/article");

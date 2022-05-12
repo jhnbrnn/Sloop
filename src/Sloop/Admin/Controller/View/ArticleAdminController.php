@@ -2,7 +2,7 @@
 
 namespace Sloop\Admin\Controller\View;
 
-use Pimple\Container;
+use Psr\Container\ContainerInterface;
 use Sloop\Service\ArticleService;
 
 class ArticleAdminController extends AbstractAdminViewController
@@ -12,30 +12,37 @@ class ArticleAdminController extends AbstractAdminViewController
      */
     protected $articleService;
 
-    public function __construct(Container $c)
+    public function __construct(ContainerInterface $container)
     {
-        parent::__construct($c);
-        $this->articleService = $c['ArticleService'];
+        parent::__construct($container);
+        $this->articleService = $container->get('ArticleService');
     }
 
-    public function route($args)
+    public function __invoke($request, $response, $args)
     {
+        $flash_article = $this->container->get('flash')->getFirstMessage('article');
+
         $id = array_shift($args);
         $articles = $this->articleService->getAll();
         if ($id !== null) {
             $article = $this->articleService->getArticle($id);
-        } elseif (isset($this->app->flashData()['article'])) {
-            $article = $this->app->flashData()['article'];
+        } elseif (isset($flash_article)) {
+            $article = $flash_article;
         } else {
             $article = null;
         }
-        $this->app->render('admin/admin-article.html.twig', array(
+        return $this->container->get('view')->render($response, 'admin/admin-article.html.twig', array(
             'token' => $_SESSION['token'],
             'stylesheets' => $this->getStyles(),
             'type' => 'article',
             'articles' => $articles,
             'article' => $article
         ));
+    }
+
+    public function route($args)
+    {
+
     }
 
 }

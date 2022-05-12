@@ -5,25 +5,31 @@
 
 namespace Sloop\Service;
 
-
+use Psr\Container\ContainerInterface;
 use Sloop\Sloop;
+use Sloop\User\UserService;
+use Sloop\Service\ArticleService;
+use Sloop\Service\ZineService;
+use Sloop\Service\UrlService;
 
 class ServiceManager
 {
-    protected static $services = [
-        'ArticleService',
-        'ZineService',
-        'UrlService'
-    ];
-
-    /**
-     * @param $appInstance Sloop
-     */
-    public static function registerServices($appInstance)
+    public static function registerServices(ContainerInterface $container)
     {
-        foreach (self::$services as $serviceName) {
-            $appInstance->registerService($serviceName,
-                __NAMESPACE__ . '\\' . $serviceName);
-        }
+        $container->set('UserService', function () {
+            return new UserService();
+        });
+
+        $container->set('ArticleService', function() use ($container) {
+            return new ArticleService($container);
+        });
+
+        $container->set('ZineService', function() use ($container) {
+            return new ZineService($container);
+        });
+
+        $container->set('UrlService', function() use ($container) {
+            return new UrlService($container);
+        });
     }
 }

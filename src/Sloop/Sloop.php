@@ -1,17 +1,21 @@
 <?php
 namespace Sloop;
 
-use Illuminate\Database\Capsule\Manager as DatabaseManager;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\ErrorLogHandler;
 use Monolog\Logger;
 use Pimple\Container;
-use Slim\Slim;
+use Pimple\Psr11\Container as PsrContainer;
+
+use Slim\App;
+use Slim\Flash\Messages;
 use Slim\Views\Twig;
+use Slim\Views\TwigMiddleware;
 use Slim\Views\TwigExtension;
+use Slim\Factory\AppFactory;
 use Sloop\Admin\AdminManager;
 use Sloop\Service\ServiceManager;
-use Sloop\User\UserService;
 
 class Sloop
 {
@@ -19,6 +23,8 @@ class Sloop
      * @var Container
      */
     protected $container;
+
+    protected $appContainer;
     /**
      * @var Slim
      */
@@ -27,40 +33,62 @@ class Sloop
     public function __construct($settings)
     {
         $this->container = new Container();
-        $db = new DatabaseManager();
+        $this->appContainer = new \DI\Container();
+        $db = new Capsule();
         $db->addConnection($settings['db']['mysql']);
         $db->setAsGlobal();
         $db->bootEloquent();
         $this->app = $this->getFramework($settings['slim']);
         $this->setLogger($this->container);
-        $this->setUserService($this->container);
-        ServiceManager::registerServices($this);
-        AdminManager::registerControllers($this);
-        AdminManager::registerAppControllers($this);
+
+        ServiceManager::registerServices($this->appContainer);
+        // AdminManager::registerControllers($this);
+        // AdminManager::registerAppControllers($this);
         AdminManager::registerRoutes($this, $this->app);
     }
 
     protected function getFramework($config)
     {
-        $app = new Slim([
-            'view' => new Twig()
-        ]);
+        AppFactory::setContainer($this->appContainer);
 
-        $app->config([
-            'templates.path' => $config['templates.path']
-        ]);
+        $this->appContainer->set('view', function() use ($config) {
+            return Twig::create($config['templates.path'], ['cache' => $config['parserOptions']['cache']]);
+        });
 
-        $view = $app->view();
-        $view->parserOptions = $config['parserOptions'];
-        $view->parserExtensions = array(
-            new TwigExtension()
-        );
+        $this->appContainer->set('flash', function() {
+            $storage = [];
+            return new Messages($storage);
+        });
+
+        $app = AppFactory::create();
+        $app->add(TwigMiddleware::createFromContainer($app));
+
+       // Add session start middleware
+        $app->add(function ($request, $next) {
+            // Start PHP session
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
+
+            // Change flash message storage
+            $this->get('flash')->__construct($_SESSION);
+
+            return $next->handle($request);
+        }); 
+
+        $app->addErrorMiddleware(true, true, true);
+
         return $app;
     }
 
     public function getSlim()
     {
         return $this->app;
+    }
+
+    public function getView()
+    {
+        return $this->app->getContainer()->get('view');
     }
 
     protected function setLogger(&$c)
@@ -74,13 +102,15 @@ class Sloop
             $log->pushHandler($handler);
             return $log;
         };
-    }
-
-    protected function setUserService(&$c)
-    {
-        $c['UserService'] = function () {
-            return new UserService();
-        };
+        $this->appContainer->set('logger', function () {
+            $log = new Logger('ErrorLogger');
+            $handler = new ErrorLogHandler();
+            $formatter = new LineFormatter();
+            $formatter->includeStacktraces();
+            $handler->setFormatter($formatter);
+            $log->pushHandler($handler);
+            return $log;
+        });
     }
 
     public function __get($name)
@@ -117,62 +147,62 @@ class Sloop
 
     public function getZine($id)
     {
-        return $this->container['ZineService']->getZine($id);
+        return $this->appContainer->get('ZineService')->getZine($id);
     }
 
     public function getZineIssue($zineId, $id)
     {
-        return $this->container['ZineService']->getZineIssue($zineId, $id);
+        return $this->appContainer->get('ZineService')->getZineIssue($zineId, $id);
     }
 
     public function getAllZines()
     {
-        return $this->container['ZineService']->getAll();
+        return $this->appContainer->get('ZineService')->getAll();
     }
 
     public function getAllIssuesForZine($zineId)
     {
-        return $this->container['ZineService']->getIssuesForZine($zineId);
+        return $this->appContainer->get('ZineService')->getIssuesForZine($zineId);
     }
 
     public function createZine($title, $description)
     {
-        return $this->container['ZineService']->createZine($title,
+        return $this->appContainer->get('ZineService')->createZine($title,
             $description);
     }
 
     public function createZineIssue($zineId, $zineIssueArray)
     {
-        return $this->container['ZineService']->createZineIssue($zineId,
+        return $this->appContainer->get('ZineService')->createZineIssue($zineId,
             $zineIssueArray);
     }
 
     public function getArticleIdByUrl($url)
     {
-        return $this->container['UrlService']->getIdByUrl($url);
+        return $this->appContainer->get('UrlService')->getIdByUrl($url);
     }
 
     public function getArticle($id)
     {
-        return $this->container['ArticleService']->getArticle($id);
+        return $this->appContainer->get('ArticleService')->getArticle($id);
     }
 
     public function getAllArticles()
     {
-        return $this->container['ArticleService']->getAll();
+        return $this->appContainer->get('ArticleService')->getAll();
     }
 
     public function getLatestArticle()
     {
-        return $this->container['ArticleService']->getLatestArticle();
+        return $this->appContainer->get('ArticleService')->getLatestArticle();
     }
 
     public function createArticle($articleArray)
     {
         if (isset($articleArray['articleId'])) {
-            return $this->container['ArticleService']->update($articleArray);
+            return $this->appContainer->get('ArticleService')->update($articleArray);
         } else {
-            return $this->container['ArticleService']->create($articleArray);
+            return $this->appContainer->get('ArticleService')->create($articleArray);
         }
 
     }

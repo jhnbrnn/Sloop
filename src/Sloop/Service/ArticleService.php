@@ -2,22 +2,18 @@
 
 namespace Sloop\Service;
 
+use Psr\Container\ContainerInterface;
 use Illuminate\Database\QueryException;
-use Monolog\Logger;
 use Sloop\Model\Article;
 use Sloop\Model\URL;
 
 class ArticleService extends AbstractService
 {
+    protected $appContainer;
 
-    /**
-     * @var $log Logger
-     */
-    protected $log;
-
-    public function __construct($c)
+    public function __construct(ContainerInterface $container)
     {
-        $this->log = $c['Logger'];
+        $this->appContainer = $container;
     }
 
     public function createArticle($articleArray)
@@ -108,7 +104,7 @@ class ArticleService extends AbstractService
             try {
                 $url->save();
             } catch (QueryException $e) {
-                $this->log->error($e);
+                error_log($e);
             }
         });
         return $insert;
@@ -124,7 +120,7 @@ class ArticleService extends AbstractService
         try {
             $result = $article->save();
         } catch (QueryException $e) {
-            $this->log->error($e);
+            error_log($e);
         }
         return $result;
     }
@@ -138,7 +134,7 @@ class ArticleService extends AbstractService
         try {
             $result = $article->url()->save($url);
         } catch (QueryException $e) {
-            $this->log->error($e);
+            error_log($e);
         }
         return $result;
     }

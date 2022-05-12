@@ -6,7 +6,7 @@
 namespace Sloop\Admin\Controller\App;
 
 
-use Pimple\Container;
+use Psr\Container\ContainerInterface;
 use Sloop\User\UserService;
 
 class LogoutFormController extends AbstractAppController
@@ -17,17 +17,22 @@ class LogoutFormController extends AbstractAppController
      */
     protected $userService;
 
-    public function __construct(Container $c)
+    public function __construct(ContainerInterface $container)
     {
-        parent::__construct($c);
-        $this->userService = $c['UserService'];
+        parent::__construct($container);
+        $this->userService = $container->get('UserService');
+    }
+
+    public function __invoke($request, $response, $args)
+    {
+        $this->userService->processLogoutForm();
+        return $response
+            ->withHeader('Location', '/')
+            ->withStatus(302);
     }
 
     public function route($args)
     {
-        parent::route($args);
-        $this->userService->processLogoutForm();
-        $this->app->redirect($this->request->getRootUri());
     }
 
 }

@@ -4,19 +4,30 @@ namespace Sloop\Admin\Controller\View;
 
 class LoginController extends AbstractAdminViewController
 {
-    protected function route($args)
+    public function __invoke($request, $response, $args)
     {
         if (isset($_SESSION['user'])) {
-            $this->app->redirect('admin/article');
+            error_log('logged in!');
+            return $response
+                ->withHeader('Location', 'admin/article')
+                ->withStatus(302);
         }
 
-        $this->app->render('admin/login.html.twig', array(
+        $flash = $this->container->get('flash');
+        
+        return $this->container->get('view')->render($response, 'admin/login.html.twig', array(
             'stylesheets' => $this->getStyles(),
             'scripts' => $this->getScripts(),
             'html_title' => '',
             'is_front' => false,
             'logged_in' => false,
-            'token' => $_SESSION['token']
+            'token' => $_SESSION['token'],
+            'flash' => $flash->getMessages()
         ));
+    }
+
+    protected function route($args)
+    {
+        
     }
 }

@@ -5,11 +5,18 @@
 
 namespace Sloop\Service;
 
+use Psr\Container\ContainerInterface;
 use Sloop\Model\Zine;
 use Sloop\Model\ZineIssue;
 
 class ZineService extends AbstractService
 {
+    protected $appContainer;
+
+    public function __construct(ContainerInterface $container)
+    {
+        $this->appContainer = $container;
+    }
 
     public function getZine($id)
     {
@@ -49,7 +56,7 @@ class ZineService extends AbstractService
     {
         $zineIssue = new ZineIssue();
         $zineIssue->zine_id = $zineId;
-        $zineIssue->setIssueNumber($zineIssueArray['issueNumber']);
+        $zineIssue->issue_number = $zineIssueArray['issueNumber'];
         return $zineIssue->save();
     }
 

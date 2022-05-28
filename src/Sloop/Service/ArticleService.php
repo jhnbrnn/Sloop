@@ -43,10 +43,12 @@ class ArticleService extends AbstractService
                 $query->where('active', 1);
             }
         ])->get();
-        return $articles->sortByDesc(function ($article) {
+        $filtered = $articles->filter(function ($value, $key) {
+            return !!$value['published'];
+        });
+        return $filtered->sortByDesc(function ($article) {
             return $article->created_at;
         });
-
     }
 
     public function getLatestArticle()

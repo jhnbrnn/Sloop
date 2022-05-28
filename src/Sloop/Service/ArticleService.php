@@ -43,6 +43,18 @@ class ArticleService extends AbstractService
                 $query->where('active', 1);
             }
         ])->get();
+        return $articles->sortByDesc(function ($article) {
+            return $article->created_at;
+        });
+    }
+
+    public function getAllPublished()
+    {
+        $articles = Article::with([
+            'url' => function ($query) {
+                $query->where('active', 1);
+            }
+        ])->get();
         $filtered = $articles->filter(function ($value, $key) {
             return !!$value['published'];
         });
@@ -59,6 +71,7 @@ class ArticleService extends AbstractService
     protected function create($articleArray)
     {
         $article = new Article();
+        $article->published = array_key_exists('published', $articleArray) ? true : false;
         $result = $this->saveArticle($article, $articleArray);
         if ($result !== true) {
             return $articleArray;
@@ -74,6 +87,7 @@ class ArticleService extends AbstractService
     protected function update($articleArray)
     {
         $article = Article::find($articleArray['articleId']);
+        $article->published = array_key_exists('published', $articleArray) ? true : false;
         $result = $this->saveArticle($article, $articleArray);
         if ($result !== true) {
             return $articleArray;

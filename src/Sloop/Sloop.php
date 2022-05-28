@@ -192,6 +192,11 @@ class Sloop
         return $this->appContainer->get('ArticleService')->getAll();
     }
 
+    public function getAllPublishedArticles()
+    {
+        return $this->appContainer->get('ArticleService')->getAllPublished();
+    }
+
     public function getLatestArticle()
     {
         return $this->appContainer->get('ArticleService')->getLatestArticle();
